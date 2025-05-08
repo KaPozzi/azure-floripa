@@ -1,0 +1,39 @@
+name: Deploy para Azure com OIDC
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔄 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 📦 Login no Azure com OIDC
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: 🛠️ Build da imagem Docker
+        run: |
+          docker build -t meuapp:latest .
+
+      - name: 🐳 Tag e push para Azure Container Registry (ACR)
+        run: |
+          docker tag meuapp:latest <SEU_ACR>.azurecr.io/meuapp:latest
+          docker push <SEU_ACR>.azurecr.io/meuapp:latest
+
+      - name: 🚀 Deploy no Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: <SEU_WEBAPP_NAME>
+          images: <SEU_ACR>.azurecr.io/meuapp:latest
